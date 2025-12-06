@@ -169,7 +169,7 @@
   </div>
 
   <script>
-    // elements
+    // ========== ELEMENTS ==========
     const bizName = document.getElementById('bizName');
     const bizEmail = document.getElementById('bizEmail');
     const bizPhone = document.getElementById('bizPhone');
@@ -189,13 +189,12 @@
     const status = document.getElementById('status');
     const errorBox = document.getElementById('errorBox');
 
-    // utility: clear error visuals
+    // ========== UTILITY FUNCTIONS ==========
     function clearErrors(){
       [bizName, bizEmail, bizPhone].forEach(el => el.classList.remove('error'));
       errorBox.innerHTML = '';
     }
 
-    // validation: require name and (email or phone)
     function validate(){
       clearErrors();
       const name = bizName.value.trim();
@@ -214,7 +213,6 @@
       return { ok: errors.length===0, errors };
     }
 
-    // read logo file and return Promise of dataURL or null
     function readLogoFile(){
       const f = bizLogo.files && bizLogo.files[0];
       if(!f) return Promise.resolve(null);
@@ -226,14 +224,19 @@
       });
     }
 
-    // escape HTML
-    function esc(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
+    function esc(s){ 
+      return String(s||'').replace(/[&<>"']/g, c=>({ 
+        '&':'&amp;',
+        '<':'&lt;',
+        '>':'&gt;',
+        '"':'&quot;',
+        "'":'&#39;' 
+      })[c]); 
+    }
 
-    // build website HTML string
+    // ========== BUILD HTML FUNCTION ==========
     function buildHtml(data){
-      const {
-        name,email,phone,address,service,desc,tag,highlights,link,hours,logoData
-      } = data;
+      const { name,email,phone,address,service,desc,tag,highlights,link,hours,logoData } = data;
       const accent = '#0f62fe';
       const highlightItems = (highlights||'').split(',').map(s=>s.trim()).filter(Boolean).slice(0,5);
       const highlightHtml = highlightItems.length ? `<ul>${highlightItems.map(h=>`<li>${esc(h)}</li>`).join('')}</ul>` : '';
@@ -245,9 +248,10 @@
         </p>
       `;
 
-      const logoImg = logoData ? `<img src="${logoData}" alt="${esc(name)} logo" style="height:56px;border-radius:8px;object-fit:contain">` : `<div style="width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,#0f62fe,#7c3aed);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700">${esc(name.charAt(0)||'W')}</div>`;
+      const logoImg = logoData ? 
+        `<img src="${logoData}" alt="${esc(name)} logo" style="height:56px;border-radius:8px;object-fit:contain">` : 
+        `<div style="width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,#0f62fe,#7c3aed);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700">${esc(name.charAt(0)||'W')}</div>`;
 
-      // main page template
       return `<!doctype html>
 <html lang="en">
 <head>
@@ -343,24 +347,23 @@
 </html>`;
     }
 
-    // update preview with iframe
+    // ========== PREVIEW FUNCTION ==========
     function showInPreview(html){
       try{
         const blob = new Blob([html], { type:'text/html' });
         const url = URL.createObjectURL(blob);
         previewFrame.innerHTML = '<iframe src="'+url+'" style="width:100%;height:100%;border:0;border-radius:8px"></iframe>';
-        // revoke after some time
         setTimeout(()=>URL.revokeObjectURL(url), 60000);
       }catch(err){
-        previewFrame.innerHTML = `<div style="padding:20px;color:${getComputedStyle(document.documentElement).getPropertyValue('--error')};">Preview failed to load.</div>`;
+        previewFrame.innerHTML = `<div style="padding:20px;color:var(--error);">Preview failed to load.</div>`;
       }
     }
 
-    // store last generated html for download
+    // ========== GLOBAL VARIABLE ==========
     let lastGeneratedHtml = null;
 
     // ========== NETLIFY DEPLOY FUNCTION ==========
-    const NETLIFY_TOKEN = 'YOUR_TOKEN_HERE'; // REPLACE WITH YOUR REAL TOKEN
+    const NETLIFY_TOKEN = 'YOUR_TOKEN_HERE'; // ⚠️ REPLACE WITH YOUR REAL TOKEN!
 
     async function deployToNetlify() {
       if (!lastGeneratedHtml) {
@@ -372,28 +375,27 @@
       const deployResult = document.getElementById('deployResult');
       const deployBtn = document.getElementById('deployBtn');
       
-      // Save original button text
       const originalText = deployBtn.textContent;
       deployBtn.textContent = '🚀 Deploying...';
       deployBtn.disabled = true;
       deployResult.innerHTML = '<span style="color: #666;">⏳ Uploading to Netlify (20 seconds)...</span>';
       
       try {
-        // 1. Create a simple HTML file
+        // 1. Create HTML file
         const htmlBlob = new Blob([lastGeneratedHtml], { type: 'text/html' });
         
-        // 2. Create FormData (like a folder)
+        // 2. Create FormData
         const formData = new FormData();
         formData.append('index.html', htmlBlob, 'index.html');
         
-        // 3. Add CSS file too (extract from HTML if we can)
+        // 3. Add CSS file
         const styleMatch = lastGeneratedHtml.match(/<style>([\s\S]*?)<\/style>/);
         if (styleMatch && styleMatch[1]) {
           const cssBlob = new Blob([styleMatch[1]], { type: 'text/css' });
           formData.append('style.css', cssBlob, 'style.css');
         }
         
-        // 4. Upload to Netlify API
+        // 4. Upload to Netlify
         const response = await fetch('https://api.netlify.com/api/v1/sites', {
           method: 'POST',
           headers: {
@@ -407,7 +409,7 @@
         }
         
         const data = await response.json();
-        const liveUrl = data.ssl_url || data.url || data.managed_dns || data.url;
+        const liveUrl = data.ssl_url || data.url;
         
         // 5. Show success
         deployResult.innerHTML = `
@@ -449,11 +451,8 @@
       }
     }
 
-    // Connect deploy button to function
-    document.getElementById('deployBtn').addEventListener('click', deployToNetlify);
-
-    // generate handler
-    generateBtn.addEventListener('click', async ()=>{
+    // ========== GENERATE HANDLER ==========
+    async function generateHandler(){
       status.textContent = '';
       const v = validate();
       if(!v.ok){
@@ -488,7 +487,6 @@
         status.textContent = 'Preview ready — you can download the HTML.';
         errorBox.innerHTML = '';
       } catch (err){
-        // highlight none specifically; show friendly error and mark Biz Name field
         errorBox.innerHTML = '<div class="err-text">Failed to generate website. Please check your inputs.</div>';
         bizName.classList.add('error');
       } finally {
@@ -496,9 +494,17 @@
         resetBtn.disabled = false;
         generateBtn.textContent = 'Generate';
       }
-    });
+    }
 
-    // download handler
-    downloadBtn.addEventListener('click', ()=>{
+    // ========== DOWNLOAD HANDLER ==========
+    function downloadHandler(){
       if(!lastGeneratedHtml){
-  
+        errorBox.innerHTML = '<div class="err-text">Nothing to download — generate first.</div>';
+        return;
+      }
+      const blob = new Blob([lastGeneratedHtml], { type: 'text/html' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      const fname = (bizName.value.trim() || 'site').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/gi,'') + '.html';
+      a.download = fname;
+      document.body.ap
